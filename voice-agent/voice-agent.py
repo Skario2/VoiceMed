@@ -33,8 +33,7 @@ SYSTEM_MESSAGE = (
     # specific questions
     "If the user gives you a long answer, that you do not understand or that contradicts earlier statements, ask the user to summarize again. "
     "If the user insists he does not have a medical history, rephrase the way you ask and explain that it is very important, that the doctor knows. "
-    # "You are a helpful and bubbly AI assistant who loves to chat about "
-    "The chat is generally seperated into three main steps. Start by asking about the personal information needed for the authentication of the patient, which are the full name, birth date and insurance number. If you doubt any information then ask them again. Once you have them three you can use the function tool named \"get_id_from_server\""
+    "The chat is generally seperated into three main steps. Start by asking about the personal information needed for the authentication of the patient, which are the full name, birth date and insurance number. If you doubt any information then ask them again. Once you have them three you can use the function tool named \"get_id_from_server\"" 
     # todo: Add the next steps
 )
 VOICE = 'alloy'
@@ -62,9 +61,9 @@ async def handle_incoming_call(request: Request):
     """Handle incoming call and return TwiML response to connect to Media Stream."""
     response = VoiceResponse()
     # <Say> punctuation to improve text-to-speech flow
-    response.say("Please wait")
+    #response.say("Please wait")
     response.pause(length=1)
-    response.say("Hello!")
+    #response.say("Hello!")
     host = request.url.hostname
     connect = Connect()
     connect.stream(url=f'wss://{host}/media-stream')
@@ -234,7 +233,7 @@ async def send_initial_conversation_item(openai_ws):
             "content": [
                 {
                     "type": "input_text",
-                    "text": "Greet the user with 'Hello there! I am Joe, an AI assistant whose purpose it is to make your medical intake at Avi medical as easy as possible. What is your name?'"
+                    "text": "Greet the user with 'Hi! I am Joe, an AI assistant working to make your appointment at Avi medical as convenient as possible'"
                 }
             ],
 
@@ -307,21 +306,20 @@ def _get_id(
 
 
 def _create_intake(
-        dob: str,
-        gender: str,
         health_insurance_type: str,
         health_insurance_name: str,
-        name: str,
+        gender: str,
         phone_number: str,
         email: str,
         address: str,
         postal_code: str,
         city: str,
         country: str,
+        allergies: str,
+        medication: str,
 ):
     """
     Create an intake object for the given parameters.
-    :param dob: The patients date of birth
     :param gender: The patients gender
     :param health_insurance_type: The patients health insurance provider type (public or private)
     :param health_insurance_name: The patients health insurance provider name
@@ -332,29 +330,23 @@ def _create_intake(
     :param postal_code: The patients postal code
     :param city: The patients city
     :param country: The patients country
+    :param allergies: The patients allergies
+    :param medication: The patients current medication
     :return: an intake object.
     """
 
 
-def _create_anamnese(
-        dob: str,
-        name: str,
+def _create_symptoms(
         symptoms: str = "",
+        related: str = "",
 ):
     """
-    Create an anamnese object for the given parameters.
-    :param dob: The patients date of birth
-    :param name: The patients name
-    :param symptoms: The symptom items of the anamnese object. A patient can have multiple
-                symptoms. Each symptom has is described by
-                * title
-                * related. The explanation contains further
-                details about the item, what the patiens condition is related to, like prior sicknesses,
-                allergies, etc. Example: "I have a headache in the front of my head. I am allergic to pollen." After asking some follow-ups, the patient says "I used painkillers (determine type) before. Here the following could be inferred
-                title: "Headache"
-                related: "Location in front of head. Patient is allergic to pollen. Painkiller used: ibuprofen"
-            :type symptoms: [{"title": "str", "related": "str"}]
-    :return: a protocol object.
+    Create a symptoms object for the given parameters. Ask the patient to elaborate on the symptoms, what caused them, where they are and how his medical history could be related to them.
+    The patient might have multiple symptoms. 
+    :param symptoms: The symptoms
+    :param related: The explanation contains further details about the item, what the patiens condition is related to, like prior sicknesses,
+                allergies, etc. 
+    :return: a symptoms object.
     """
 
 
