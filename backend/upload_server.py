@@ -43,25 +43,6 @@ def save_to_db(patient_id: int, type: str, priority: int, content: str, date: da
     session.commit()
 
 
-@app.route("/api/upload-stats", methods=["GET"])
-def check():
-    patient_id = request.args.get("patient_id")
-    lock.acquire()
-    if patient_id not in connected_patients:
-        lock.release()
-        return jsonify({"status": "bad"}), 400
-    connected_patients[patient_id]["lock"].acquire()
-    status = connected_patients[patient_id]["last_uploaded"]["status"]
-    lock.release()
-    return jsonify({"status": status}), 200
-
-
-@app.route("/api/start-upload", methods=["GET"])
-def start():
-    start_id = request.args.get("id")
-    return jsonify({"url": "http://localhost:8080/?id=" + start_id})
-
-
 @app.route("/api/info", methods=["PUT"])
 def save_info():
     json_data = request.get_json(force=True)
@@ -162,14 +143,12 @@ def start_upload():
     patient_id = request.args.get("patient_id")
     if not patient_id:
         return jsonify({"error": "Missing patient_id"}), 400
-
     if patient_id not in connected_patients:
         return jsonify({"error": "Unknown patient_id"}), 404
-
     lock.acquire()
     try:
         connected_patients[patient_id]["state"] = "uploading"
-        upload_link = f"http://localhost:5000/api/upload/?id={patient_id}"   #link hardcoded???
+        upload_link = f"http://localhost:3000/frontend/{patient_id}"
         connected_patients[patient_id]["last_uploaded"]["link"] = upload_link
     finally:
         lock.release()
@@ -187,12 +166,9 @@ def upload_stats():
     lock.acquire()
     try:
         status = connected_patients[patient_id]["last_uploaded"]["status"]
-        file_id = connected_patients[patient_id]["last_uploaded"].get("id", None)
     finally:
         lock.release()
-    return jsonify({"file_id": file_id, "status": status}), 200
-
-
+    return jsonify({"status": status}), 200
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)

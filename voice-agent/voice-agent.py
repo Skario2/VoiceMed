@@ -163,6 +163,7 @@ async def handle_media_stream(websocket: WebSocket):
                                     await send_info_to_openai(content)
                                 elif method_name == "put_info_from_voice":
                                     put_info_from_voice(**arguments)
+
                                 elif method_name == "start_upload":
                                     start_upload(**arguments)
                                 elif method_name == "check_upload":
