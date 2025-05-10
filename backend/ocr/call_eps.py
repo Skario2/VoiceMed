@@ -20,7 +20,7 @@ def get_id_from_server(name : str, birthday: str, insurance_id: str) -> tuple[in
 
 def put_info_from_voice(data_structure) -> None:
     """
-create a data structure for the patient information based on the patient's voice input.
+    create a data structure for the patient information based on the patient's voice input.
     :param data_structure: the data structure to be sent to the server.
     data_structure is a dictionary with the following keys:
         - type: the type of the information (medicine/ allergy/ diagnosis/ operations/ chronic disease/ vaccination)
@@ -39,12 +39,26 @@ create a data structure for the patient information based on the patient's voice
     return response.json() if response.status_code == 200 else None
 
 def start_upload(p_id):
+    """
+    Start the upload process for the given patient id.
+    :param p_id: The id of the patient
+    :type p_id: int
+    :return: link to the upload webapplication
+    """    
     response = requests.put(f"{SERVER_URL}/api/start-upload", json={"p_id": p_id})
     if response.status_code == 200:
         return response.json().get("link")
     return None
 
 def check_upload(p_id):
+    """
+    check the upload status for the given patient id. Check if the status is ok or not.
+    :param p_id: The id of the patient
+    :type p_id: int
+    :return: f_id: The id of the file
+             status: The status of the upload
+    :rtype: tuple
+    """    
     params = {"p_id": p_id}
     response = requests.get(f"{SERVER_URL}/api/upload-stats", params=params)
     if response.status_code == 200:
