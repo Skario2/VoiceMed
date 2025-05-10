@@ -83,20 +83,33 @@ def upload_file():
 @app.route("/api/id", methods=["GET"])
 def get_id():
     name = request.args.get("name")
+    print(1)
     birthdate = request.args.get("birthdate")
+    print(2)
     insurance_id = request.args.get("insurance_id")
+    print(3)
     engine = create_engine(DATABASE_URL, echo=True)
+    print(4)
     Base.metadata.create_all(engine)
+    print(5)
     new_session = sessionmaker(bind=engine)
+    print(6)
     session = new_session()
+    print(7)
     patients = (session.query(Patient).filter(Patient.name == name).filter(Patient.date_of_birth == birthdate)
      .filter(Patient.insurance_card_id == insurance_id).all())
+    print(8)
     assert len(patients) == 1
     hash_digest = hmac.new(__SECRET_KEY__, f"{__c:03}".encode(), hashlib.sha256).digest()
+    print(9)
     patient_id = base64.urlsafe_b64encode(hash_digest).decode().rstrip("=")
+    print(10)
     lock.acquire()
+    print(11)
     connected_patients[patient_id] = {"patient": patients[0].patient_id, "state": "authenticated", "last_uploaded_id": -1}
+    print(12)
     lock.release()
+    print(patient_id)
     return {'id': patient_id}, 200
 
 
