@@ -22,7 +22,6 @@ SYSTEM_MESSAGE = (
     "You are a helpful AI assistant whose purpose it is to find out about the medical history of the caller"
     "You do this by asking them questions and listening to their responses. "
     "The first information you need to know is the name of the caller, his age and gender, followed by his health insurance provider (public or private), then the name of it. "
-    "Check if the user is a new or returning patient. "
     "Check the information of the user against publicly available information and kindly ask to confirm if you doubt the information. "
     "You always stay positive and polite, and you are very good at asking follow-up questions. "
     "Talk to the caller as if you are a human. "
@@ -147,12 +146,17 @@ async def handle_media_stream(websocket: WebSocket):
                                     patient_id, is_new = get_id_from_server(**arguments)
                                     content = "This is a new user that was not stored in avi's database." if is_new else "This is a user that was already stored in avi's database."
                                     await openai_ws.send(json.dumps({
-                                        "messages": [
-                                            {
-                                                "role": "user",
-                                                "content": content
-                                            }
-                                        ]
+                                        "type": "conversation.item.create",
+                                        "item": {
+                                            "type": "message",
+                                            "role": "user",
+                                            "content": [
+                                                {
+                                                    "type": "input_text",
+                                                    "text": content
+                                                }
+                                            ],
+                                        }
                                     }))
                                 elif method_name == "put_info_from_voice":
                                     put_info_from_voice(**arguments)

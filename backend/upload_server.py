@@ -23,7 +23,6 @@ rest_dir = os.path.dirname(__file__)
 __SECRET_KEY__ = bytes(secrets.token_hex(32), 'utf-8')
 __c = 0
 
-
 '''
 What we want is 
 {
@@ -34,6 +33,7 @@ hash: {patient:id, state: (authenticated | voice_done | uploading), last_uploade
 connected_patients = {}
 lock = threading.Lock()
 
+
 def save_to_db(patient_id: int, type: str, priority: int, content: str, date: datetime) -> None:
     engine = create_engine(DATABASE_URL, echo=True)
     Base.metadata.create_all(engine)
@@ -41,6 +41,7 @@ def save_to_db(patient_id: int, type: str, priority: int, content: str, date: da
     session = new_session()
     session.add(PatientInfo(patient_id=patient_id, type=type, content=content, date=date, priority=priority))
     session.commit()
+
 
 @app.route("/api/upload-stats", methods=["GET"])
 def check():
@@ -54,10 +55,12 @@ def check():
     lock.release()
     return jsonify({"status": status}), 200
 
+
 @app.route("/api/start-upload", methods=["GET"])
 def start():
     start_id = request.args.get("id")
     return jsonify({"url": "http://localhost:8080/?id=" + start_id})
+
 
 @app.route("/api/info", methods=["PUT"])
 def save_info():
@@ -69,6 +72,7 @@ def save_info():
         return jsonify({"message": "Saved data in the database"}), 200
     except Exception:
         return jsonify({"error": "Cannot save the data in the database"}), 400
+
 
 @app.route("/api/upload", methods=["POST"])
 def upload_file():
@@ -89,7 +93,8 @@ def upload_file():
             openai_server = OpenAIServer.new_server()
             output = openai_server.extract_from_image(image_bytes)
             connected_patients[patient_id]["last_uploaded"] = {
-                "id": 0 if len(connected_patients[patient_id]["last_uploaded"]) == 0 else connected_patients[patient_id]["last_uploaded"]["id"] + 1 ,
+                "id": 0 if len(connected_patients[patient_id]["last_uploaded"]) == 0 else
+                connected_patients[patient_id]["last_uploaded"]["id"] + 1,
                 "status": output["status"],
                 "content": output["content"]
             }
@@ -100,22 +105,29 @@ def upload_file():
             return jsonify({"error": str(e)}), 500
     return jsonify({"error": "Invalid file type"}), 400
 
+
 @app.route("/api/id", methods=["GET"])
 def get_id():
     name = request.args.get("name")
-    birthdate = request.args.get("birthdate")
+    birthdate = request.args.get("birthday")
     insurance_id = request.args.get("insurance_id")
+    print(request.args)
     engine = create_engine(DATABASE_URL, echo=True)
     Base.metadata.create_all(engine)
     new_session = sessionmaker(bind=engine)
     session = new_session()
     patients = (session.query(Patient).filter(Patient.name == name).filter(Patient.date_of_birth == birthdate)
-     .filter(Patient.insurance_card_id == insurance_id).all())
+                .filter(Patient.insurance_card_id == insurance_id).all())
     assert len(patients) <= 1
     is_new = len(patients) == 0
     if is_new:
         with new_session() as session:
-            session.add(Patient(name=name, date_of_birth=datetime.date(), insurance_card_id=insurance_id))
+            session.add(Patient(name=name, date_of_birth=datetime.strptime(birthdate, '%Y-%m-%d').date(),
+                                insurance_card_id=insurance_id))
+            session.commit()
+    session = new_session()
+    patients = (session.query(Patient).filter(Patient.name == name).filter(Patient.date_of_birth == birthdate)
+                .filter(Patient.insurance_card_id == insurance_id).all())
     hash_digest = hmac.new(__SECRET_KEY__, f"{__c:03}".encode(), hashlib.sha256).digest()
     patient_id = base64.urlsafe_b64encode(hash_digest).decode().rstrip("=")
     lock.acquire()

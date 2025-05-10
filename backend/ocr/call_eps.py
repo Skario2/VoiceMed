@@ -6,7 +6,7 @@ def get_id_from_server(name : str, birthday: str, insurance_id: str) -> tuple[in
     """
         Get the id of the patient for the given parameters.
         :param name: The patients name
-        :param birthday: The patients date of birth
+        :param birthday: The patients date of birth in the format YYYY-MM-DD
         :param insurance_id: The patients health insurance number
         :return: the id of the patient.
     """
@@ -16,7 +16,7 @@ def get_id_from_server(name : str, birthday: str, insurance_id: str) -> tuple[in
         "insurance_id": insurance_id
     }
     response = requests.get(f"{SERVER_URL}/api/id", params=params)
-    return response.json()["id"] if response.status_code == 200 else None
+    return response.json()['id'], response.json()['is_new'] if response.status_code == 200 else None
 
 def put_info_from_voice(data_structure) -> None:
     """
