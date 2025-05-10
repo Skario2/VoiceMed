@@ -138,26 +138,27 @@ async def handle_media_stream(websocket: WebSocket):
                     if 'response' in response.keys() and 'output' in response['response'].keys():
                         try:
                             tools = [tool for tool in response['response']['output'] if tool['type'] == 'function_call']
-                            tool = tools[0]
-                            method_name = tool['name']
-                            arguments = json.loads(tool['arguments'])
-                            if method_name == "get_id_from_server":
-                                patient_id, is_new = get_id_from_server(**arguments)
-                                content = "This is a new user that was not stored in avi's database." if is_new else "This is a user that was already stored in avi's database."
-                                await openai_ws.send(json.dumps({
-                                    "messages": [
-                                        {
-                                            "role": "user",
-                                            "content": content
-                                        }
-                                    ]
-                                }))
-                            elif method_name == "put_info_from_voice":
-                                put_info_from_voice(**arguments)
-                            elif method_name == "start_upload":
-                                start_upload(**arguments)
-                            elif method_name == "check_upload":
-                                check_upload(patient_id)
+                            if len(tools) > 0:
+                                tool = tools[0]
+                                method_name = tool['name']
+                                arguments = json.loads(tool['arguments'])
+                                if method_name == "get_id_from_server":
+                                    patient_id, is_new = get_id_from_server(**arguments)
+                                    content = "This is a new user that was not stored in avi's database." if is_new else "This is a user that was already stored in avi's database."
+                                    await openai_ws.send(json.dumps({
+                                        "messages": [
+                                            {
+                                                "role": "user",
+                                                "content": content
+                                            }
+                                        ]
+                                    }))
+                                elif method_name == "put_info_from_voice":
+                                    put_info_from_voice(**arguments)
+                                elif method_name == "start_upload":
+                                    start_upload(**arguments)
+                                elif method_name == "check_upload":
+                                    check_upload(patient_id)
                         except Exception as e:
                             print(str(e))
 
