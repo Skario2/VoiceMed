@@ -1,4 +1,8 @@
+import base64
+import hashlib
+import hmac
 import os
+import secrets
 from datetime import datetime
 import threading
 
@@ -15,10 +19,14 @@ app = Flask(__name__)
 
 rest_dir = os.path.dirname(__file__)
 
+__SECRET_KEY__ = bytes(secrets.token_hex(32), 'utf-8')
+__c = 0
+
+
 '''
 What we want is 
 {
-hash: {state: (authenticated | voice_done | uploading), uploaded_id: id}
+hash: {patient:id, state: (authenticated | voice_done | uploading), last_uploaded: {id, status, structured_data}}...
 }
 '''
 
@@ -83,5 +91,6 @@ def get_id():
     patients = (session.query(Patient).filter(Patient.name == name).filter(Patient.date_of_birth == birthdate)
      .filter(Patient.insurance_card_id == insurance_id).all())
     assert len(patients) == 1
-
-    return {"id": patients[0].patient_id}, 200
+    hash_digest = hmac.new(__SECRET_KEY__, f"{__c:03}".encode(), hashlib.sha256).digest()
+    patient_id = base64.urlsafe_b64encode(hash_digest).decode().rstrip("=")
+    return {patient_id: {"patient": patients[0].patient_id}, "state": "authenticated", "last_uploaded_id": -1}, 200
