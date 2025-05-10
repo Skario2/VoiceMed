@@ -7,16 +7,18 @@ from twilio.rest import Client
 from fastapi import FastAPI, WebSocket, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.websockets import WebSocketDisconnect
-from twilio.twiml.voice_response import VoiceResponse, Connect, Say, Stream
-from dotenv import load_dotenv
+from twilio.twiml.voice_response import VoiceResponse, Connect
 
-load_dotenv()
+from backend.ocr.call_eps import *
 
 # Configuration
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+API_KEY_PATH = ".venv/CHATGPT_API"
+with open(API_KEY_PATH, "r") as file:
+    OPENAI_API_KEY = file.readline().strip()
 PORT = int(os.getenv('PORT', 5050))
+patient_id = -1
 SYSTEM_MESSAGE = (
-    #General setup
+    # General setup
     "You are a helpful AI assistant whose purpose it is to find out about the medical history of the caller"
     "You do this by asking them questions and listening to their responses. "
     "The first information you need to know is the name of the caller, his age and gender, followed by his health insurance provider (public or private), then the name of it. "
@@ -24,15 +26,16 @@ SYSTEM_MESSAGE = (
     "Check the information of the user against publicly available information and kindly ask to confirm if you doubt the information. "
     "You always stay positive and polite, and you are very good at asking follow-up questions. "
     "Talk to the caller as if you are a human. "
-    #Medical history
+    # Medical history
     "Talk to the caller using his name once you know it. "
     "If the user is not responding, you can ask them if they are still there. "
     "If the user gives you a one-word answer, ask them to elaborate. "
-    #specific questions
+    # specific questions
     "If the user gives you a long answer, that you do not understand or that contradicts earlier statements, ask the user to summarize again. "
     "If the user insists he does not have a medical history, rephrase the way you ask and explain that it is very important, that the doctor knows. "
-    #"You are a helpful and bubbly AI assistant who loves to chat about "
-
+    # "You are a helpful and bubbly AI assistant who loves to chat about "
+    "The chat is generally seperated into three main steps. Start by asking about the personal information needed for the authentication of the patient, which are the full name, birth date and insurance number. If you doubt any information then ask them again. Once you have them three you can use the function tool named \"get_id_from_server\""
+    # todo: Add the next steps
 )
 VOICE = 'alloy'
 LOG_EVENT_TYPES = [
@@ -48,9 +51,11 @@ app = FastAPI()
 if not OPENAI_API_KEY:
     raise ValueError('Missing the OpenAI API key. Please set it in the .env file.')
 
+
 @app.get("/", response_class=JSONResponse)
 async def index_page():
     return {"message": "Twilio Media Stream Server is running!"}
+
 
 @app.api_route("/incoming-call", methods=["GET", "POST"])
 async def handle_incoming_call(request: Request):
@@ -66,6 +71,7 @@ async def handle_incoming_call(request: Request):
     response.append(connect)
     return HTMLResponse(content=str(response), media_type="application/xml")
 
+
 @app.websocket("/media-stream")
 async def handle_media_stream(websocket: WebSocket):
     """Handle WebSocket connections between Twilio and OpenAI."""
@@ -73,11 +79,11 @@ async def handle_media_stream(websocket: WebSocket):
     await websocket.accept()
 
     async with websockets.connect(
-        'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17',
-        extra_headers={
-            "Authorization": f"Bearer {OPENAI_API_KEY}",
-            "OpenAI-Beta": "realtime=v1"
-        }
+            'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17',
+            extra_headers={
+                "Authorization": f"Bearer {OPENAI_API_KEY}",
+                "OpenAI-Beta": "realtime=v1"
+            }
     ) as openai_ws:
         await initialize_session(openai_ws)
 
@@ -87,7 +93,7 @@ async def handle_media_stream(websocket: WebSocket):
         last_assistant_item = None
         mark_queue = []
         response_start_timestamp_twilio = None
-        
+
         async def receive_from_twilio():
             """Receive audio data from Twilio and send it to the OpenAI Realtime API."""
             nonlocal stream_sid, latest_media_timestamp
@@ -117,12 +123,26 @@ async def handle_media_stream(websocket: WebSocket):
 
         async def send_to_twilio():
             """Receive events from the OpenAI Realtime API, send audio back to Twilio."""
+            global patient_id
             nonlocal stream_sid, last_assistant_item, response_start_timestamp_twilio
             try:
                 async for openai_message in openai_ws:
                     response = json.loads(openai_message)
                     if response['type'] in LOG_EVENT_TYPES:
                         print(f"Received event: {response['type']}", response)
+
+                    if response['tool_choice'] is not None:
+                        method_name = response['tool_choice']['name']
+                        arguments = json.loads(response['tool_choice']['arguments'])
+                        if method_name == "get_id_from_server" :
+                            patient_id = get_id_from_server(**arguments)
+                            assert patient_id is not None
+                        elif method_name == "put_info_from_voice" :
+                            put_info_from_voice(**arguments)
+                        elif method_name == "start_upload" :
+                            start_upload(**arguments)
+                        elif method_name == "check_upload" :
+                            check_upload(patient_id)
 
                     if response.get('type') == 'response.audio.delta' and 'delta' in response:
                         audio_payload = base64.b64encode(base64.b64decode(response['delta'])).decode('utf-8')
@@ -162,7 +182,8 @@ async def handle_media_stream(websocket: WebSocket):
             if mark_queue and response_start_timestamp_twilio is not None:
                 elapsed_time = latest_media_timestamp - response_start_timestamp_twilio
                 if SHOW_TIMING_MATH:
-                    print(f"Calculating elapsed time for truncation: {latest_media_timestamp} - {response_start_timestamp_twilio} = {elapsed_time}ms")
+                    print(
+                        f"Calculating elapsed time for truncation: {latest_media_timestamp} - {response_start_timestamp_twilio} = {elapsed_time}ms")
 
                 if last_assistant_item:
                     if SHOW_TIMING_MATH:
@@ -197,6 +218,7 @@ async def handle_media_stream(websocket: WebSocket):
 
         await asyncio.gather(receive_from_twilio(), send_to_twilio())
 
+
 async def send_initial_conversation_item(openai_ws):
     """Send initial conversation item if AI talks first."""
     initial_conversation_item = {
@@ -229,6 +251,17 @@ async def initialize_session(openai_ws):
             "instructions": SYSTEM_MESSAGE,
             "modalities": ["text", "audio"],
             "temperature": 0.8,
+            "tools": [
+                {'type': 'function', 'function': {'name': 'get_id_from_server',
+                                                  'description': 'Get the id of the patient for the given parameters.\nThe function returns: the id of the patient.',
+                                                  'parameters': {'type': 'object', 'properties': {
+                                                      'name': {'type': 'string', 'description': 'The patients name'},
+                                                      'birthday': {'type': 'string',
+                                                                   'description': 'The patients date of birth in format YYYY-MM-DD',},
+                                                      'insurance_id': {'type': 'string',
+                                                                       'description': 'The patients health insurance number'}},
+                                                                 'required': ['name', 'birthday', 'insurance_id']}}}
+            ]
         }
     }
     print('Sending session update:', json.dumps(session_update))
@@ -250,14 +283,14 @@ def send_sms(body_text):
         from_="+3197010274423",
         to="+491749816484",
     )
-
     return message.body
 
-def _get_id (
-    dob: str,
-    name: str,
-    health_insurance_number: str,
-    ):
+
+def _get_id(
+        dob: str,
+        name: str,
+        health_insurance_number: str,
+):
     """
     Get the id of the patient for the given parameters.
     :param dob: The patients date of birth
@@ -266,19 +299,20 @@ def _get_id (
     :return: the id of the patient.
     """
 
+
 def _create_intake(
-    dob: str,
-    gender: str,
-    health_insurance_type: str,
-    health_insurance_name: str,
-    name: str,
-    phone_number: str,  
-    email: str,
-    address: str,
-    postal_code: str,
-    city: str,
-    country: str,
-    ):
+        dob: str,
+        gender: str,
+        health_insurance_type: str,
+        health_insurance_name: str,
+        name: str,
+        phone_number: str,
+        email: str,
+        address: str,
+        postal_code: str,
+        city: str,
+        country: str,
+):
     """
     Create an intake object for the given parameters.
     :param dob: The patients date of birth
@@ -295,11 +329,12 @@ def _create_intake(
     :return: an intake object.
     """
 
+
 def _create_anamnese(
-    dob: str,
-    name: str,
-    symptoms: str = "",
-    ):
+        dob: str,
+        name: str,
+        symptoms: str = "",
+):
     """
     Create an anamnese object for the given parameters.
     :param dob: The patients date of birth
@@ -315,6 +350,7 @@ def _create_anamnese(
             :type symptoms: [{"title": "str", "related": "str"}]
     :return: a protocol object.
     """
+
 
 if __name__ == "__main__":
     import uvicorn

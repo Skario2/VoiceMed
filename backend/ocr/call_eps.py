@@ -2,7 +2,14 @@ import requests
 
 SERVER_URL = "http://localhost:5000"  # Change to your actual server URL
 
-def get_id_from_server(name, birthday, insurance_id):
+def get_id_from_server(name : str, birthday: str, insurance_id: str) -> int | None:
+    """
+        Get the id of the patient for the given parameters.
+        :param name: The patients name
+        :param birthday: The patients date of birth
+        :param insurance_id: The patients health insurance number
+        :return: the id of the patient.
+    """
     params = {
         "name": name,
         "birthday": birthday,
@@ -11,7 +18,7 @@ def get_id_from_server(name, birthday, insurance_id):
     response = requests.get(f"{SERVER_URL}/api/id", params=params)
     return response.json()["id"] if response.status_code == 200 else None
 
-def put_info_from_voice(data_structure):
+def put_info_from_voice(data_structure) -> None:
     response = requests.put(f"{SERVER_URL}/api/info", json=data_structure)
     return response.json() if response.status_code == 200 else None
 
@@ -28,6 +35,11 @@ def check_upload(p_id):
         data = response.json()
         return data.get("file_id"), data.get("status")
     return None, None
+
+method_names = {'get_id_from_server': get_id_from_server,
+                'put_info_from_voice': put_info_from_voice,
+                'start_upload': start_upload,
+                'check_upload': check_upload}
 
 # Example usage:
 if __name__ == "__main__":

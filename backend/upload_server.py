@@ -31,6 +31,7 @@ hash: {patient:id, state: (authenticated | voice_done | uploading), last_uploade
 '''
 
 connected_patients = {}
+lock = threading.Lock()
 
 def save_to_db(patient_id: int, type: str, priority: int, content: str, date: datetime) -> None:
     engine = create_engine(DATABASE_URL, echo=True)
@@ -93,4 +94,11 @@ def get_id():
     assert len(patients) == 1
     hash_digest = hmac.new(__SECRET_KEY__, f"{__c:03}".encode(), hashlib.sha256).digest()
     patient_id = base64.urlsafe_b64encode(hash_digest).decode().rstrip("=")
-    return {patient_id: {"patient": patients[0].patient_id}, "state": "authenticated", "last_uploaded_id": -1}, 200
+    lock.acquire()
+    connected_patients[patient_id] = {"patient": patients[0].patient_id, "state": "authenticated", "last_uploaded_id": -1}
+    lock.release()
+    return {'id': patient_id}, 200
+
+
+if __name__ == "__main__":
+    app.run(host="127.0.0.1", port=5000, debug=True)
