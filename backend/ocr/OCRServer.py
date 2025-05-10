@@ -2,6 +2,7 @@ import base64
 
 from mistralai import Mistral
 
+
 def encode_image(image_path):
     """Encode the image to base64."""
     try:
@@ -18,14 +19,11 @@ def encode_image(image_path):
 API_KEY_PATH = '../../.venv/MISTRAL_API_KEY'
 api_key = open(API_KEY_PATH, 'r').read()
 
-client = Mistral(api_key=api_key)
-
-image_path = "path_to_your_image.jpg"
+image_path = "../../resources/lab1.jpg"
 
 # Getting the base64 string
 base64_image = encode_image(image_path)
 
-api_key = os.environ["MISTRAL_API_KEY"]
 client = Mistral(api_key=api_key)
 
 ocr_response = client.ocr.process(
@@ -35,3 +33,5 @@ ocr_response = client.ocr.process(
         "image_url": f"data:image/jpeg;base64,{base64_image}"
     }
 )
+
+print(ocr_response.pages[0])
