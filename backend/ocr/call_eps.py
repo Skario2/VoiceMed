@@ -41,6 +41,19 @@ def check_upload(p_id):
         return data.get("file_id"), data.get("status")
     return None, None
 
+# def change_content(p_id, f_id, new_content):
+#     """
+#     Change the content of the file with the given id.
+#     :param p_id: The id of the patient
+#     :param f_id: The id of the file
+#     :param new_content: The new content of the file
+#     :return: None
+#     """
+#     response = requests.put(f"{SERVER_URL}/api/change-content", json={"p_id": p_id, "f_id": f_id, "new_content": new_content})
+#     return response.json() if response.status_code == 200 else None
+
+
+
 method_names = {'get_id_from_server': get_id_from_server,
                 'put_info_from_voice': put_info_from_voice,
                 'start_upload': start_upload,

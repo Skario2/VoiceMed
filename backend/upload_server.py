@@ -139,5 +139,60 @@ def get_id():
     return {'id': patient_id, 'is_new': is_new}, 200
 
 
+@app.route("/api/info", methods=["PUT"])
+def put_info():
+    patient_id = request.args.get("patient_id")
+    if not patient_id:
+        return jsonify({"error": "Missing patient_id"}), 400
+
+    if patient_id not in connected_patients:
+        return jsonify({"error": "Unknown patient_id"}), 404
+
+    data_structure = request.get_json(force=True)
+    lock.acquire()
+    try:
+        connected_patients[patient_id]["last_uploaded"]["structured_data"] = data_structure
+        connected_patients[patient_id]["state"] = "voice_done"
+    finally:
+        lock.release()
+    return jsonify({"status": "ok"}), 200
+
+@app.route("/api/start-upload", methods=["PUT"])
+def start_upload():
+    patient_id = request.args.get("patient_id")
+    if not patient_id:
+        return jsonify({"error": "Missing patient_id"}), 400
+
+    if patient_id not in connected_patients:
+        return jsonify({"error": "Unknown patient_id"}), 404
+
+    lock.acquire()
+    try:
+        connected_patients[patient_id]["state"] = "uploading"
+        upload_link = f"http://localhost:5000/api/upload/?id={patient_id}"   #link hardcoded???
+        connected_patients[patient_id]["last_uploaded"]["link"] = upload_link
+    finally:
+        lock.release()
+    return jsonify({"link": upload_link}), 200
+
+@app.route("/api/upload-stats", methods=["GET"])
+def upload_stats():
+    patient_id = request.args.get("patient_id")
+    if not patient_id:
+        return jsonify({"error": "Missing patient_id"}), 400
+
+    if patient_id not in connected_patients:
+        return jsonify({"error": "Unknown patient_id"}), 404
+
+    lock.acquire()
+    try:
+        status = connected_patients[patient_id]["last_uploaded"]["status"]
+        file_id = connected_patients[patient_id]["last_uploaded"].get("id", None)
+    finally:
+        lock.release()
+    return jsonify({"file_id": file_id, "status": status}), 200
+
+
+
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)
