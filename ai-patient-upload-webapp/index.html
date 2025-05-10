@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Upload Medical Documents</title>
+  <link rel="stylesheet" href="static/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h2>Upload Medical Documents</h2>
+    <form id="uploadForm">
+      <label for="appointmentId">Appointment ID</label>
+      <input type="text" id="appointmentId" name="appointmentId" required />
+
+      <label for="file">Choose File</label>
+      <input type="file" id="file" name="file" required />
+
+      <button type="submit">Upload</button>
+    </form>
+    <div class="message" id="message"></div>
+  </div>
+  <script src="static/script.js"></script>
+</body>
+</html>
