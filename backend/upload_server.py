@@ -113,7 +113,9 @@ def get_id():
      .filter(Patient.insurance_card_id == insurance_id).all())
     assert len(patients) <= 1
     is_new = len(patients) == 0
-
+    if is_new:
+        with new_session() as session:
+            session.add(Patient(name=name, date_of_birth=datetime.date(), insurance_card_id=insurance_id))
     hash_digest = hmac.new(__SECRET_KEY__, f"{__c:03}".encode(), hashlib.sha256).digest()
     patient_id = base64.urlsafe_b64encode(hash_digest).decode().rstrip("=")
     lock.acquire()
