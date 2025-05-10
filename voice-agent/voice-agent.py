@@ -125,6 +125,21 @@ async def handle_media_stream(websocket: WebSocket):
                 if openai_ws.open:
                     await openai_ws.close()
 
+        async def send_info_to_openai(content: str):
+            await openai_ws.send(json.dumps({
+                "type": "conversation.item.create",
+                "item": {
+                    "type": "message",
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": content
+                        }
+                    ],
+                }
+            }))
+
         async def send_to_twilio():
             """Receive events from the OpenAI Realtime API, send audio back to Twilio."""
             global patient_id
@@ -145,21 +160,10 @@ async def handle_media_stream(websocket: WebSocket):
                                 if method_name == "get_id_from_server":
                                     patient_id, is_new = get_id_from_server(**arguments)
                                     content = "This is a new user that was not stored in avi's database." if is_new else "This is a user that was already stored in avi's database."
-                                    await openai_ws.send(json.dumps({
-                                        "type": "conversation.item.create",
-                                        "item": {
-                                            "type": "message",
-                                            "role": "user",
-                                            "content": [
-                                                {
-                                                    "type": "input_text",
-                                                    "text": content
-                                                }
-                                            ],
-                                        }
-                                    }))
+                                    await send_info_to_openai(content)
                                 elif method_name == "put_info_from_voice":
                                     put_info_from_voice(**arguments)
+
                                 elif method_name == "start_upload":
                                     start_upload(**arguments)
                                 elif method_name == "check_upload":
