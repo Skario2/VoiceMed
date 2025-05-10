@@ -3,6 +3,7 @@ import json
 import base64
 import asyncio
 import websockets
+from twilio.rest import Client
 from fastapi import FastAPI, WebSocket, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.websockets import WebSocketDisconnect
@@ -32,9 +33,6 @@ SYSTEM_MESSAGE = (
     "If the user insists he does not have a medical history, rephrase the way you ask and explain that it is very important, that the doctor knows. "
     #"You are a helpful and bubbly AI assistant who loves to chat about "
 
-    #"anything the user is interested in and is prepared to offer them facts. "
-    #"You have a penchant for dad jokes, owl jokes, and rickrolling – subtly. "
-    #"Always stay positive, but work in a joke when appropriate."
 )
 VOICE = 'alloy'
 LOG_EVENT_TYPES = [
@@ -214,6 +212,7 @@ async def send_initial_conversation_item(openai_ws):
             ]
         }
     }
+    send_sms("https://www.avimedical.com/en")
     await openai_ws.send(json.dumps(initial_conversation_item))
     await openai_ws.send(json.dumps({"type": "response.create"}))
 
@@ -237,6 +236,85 @@ async def initialize_session(openai_ws):
 
     # Uncomment the next line to have the AI speak first
     await send_initial_conversation_item(openai_ws)
+
+
+def send_sms(body_text):
+    # Find your Account SID and Auth Token at twilio.com/console
+    # and set the environment variables. See http://twil.io/secure
+    account_sid = os.environ['TWILIO_ACCOUNT_SID'] = 'ACa510e6256cd95282ba6c171c3efa416a'
+    auth_token = os.environ['TWILIO_AUTH_TOKEN'] = 'e8dbcfbac1cda41e0ef81aeceb20f354'
+    client = Client(account_sid, auth_token)
+
+    message = client.messages.create(
+        body="Hello! This is Avi medical, please upload your documents here. Thank you! " + body_text,
+        from_="+3197010274423",
+        to="+491749816484",
+    )
+
+    return message.body
+
+def _get_id (
+    dob: str,
+    name: str,
+    health_insurance_number: str,
+    ):
+    """
+    Get the id of the patient for the given parameters.
+    :param dob: The patients date of birth
+    :param name: The patients name
+    :param health_insurance_number: The patients health insurance number
+    :return: the id of the patient.
+    """
+
+def _create_intake(
+    dob: str,
+    gender: str,
+    health_insurance_type: str,
+    health_insurance_name: str,
+    name: str,
+    phone_number: str,  
+    email: str,
+    address: str,
+    postal_code: str,
+    city: str,
+    country: str,
+    ):
+    """
+    Create an intake object for the given parameters.
+    :param dob: The patients date of birth
+    :param gender: The patients gender
+    :param health_insurance_type: The patients health insurance provider type (public or private)
+    :param health_insurance_name: The patients health insurance provider name
+    :param name: The patients name
+    :param phone_number: The patients phone number
+    :param email: The patients email address
+    :param address_street: The patients street address
+    :param postal_code: The patients postal code
+    :param city: The patients city
+    :param country: The patients country
+    :return: an intake object.
+    """
+
+def _create_anamnese(
+    dob: str,
+    name: str,
+    symptoms: str = "",
+    ):
+    """
+    Create an anamnese object for the given parameters.
+    :param dob: The patients date of birth
+    :param name: The patients name
+    :param symptoms: The symptom items of the anamnese object. A patient can have multiple
+                symptoms. Each symptom has is described by
+                * title
+                * related. The explanation contains further
+                details about the item, what the patiens condition is related to, like prior sicknesses,
+                allergies, etc. Example: "I have a headache in the front of my head. I am allergic to pollen." After asking some follow-ups, the patient says "I used painkillers (determine type) before. Here the following could be inferred
+                title: "Headache"
+                related: "Location in front of head. Patient is allergic to pollen. Painkiller used: ibuprofen"
+            :type symptoms: [{"title": "str", "related": "str"}]
+    :return: a protocol object.
+    """
 
 if __name__ == "__main__":
     import uvicorn
