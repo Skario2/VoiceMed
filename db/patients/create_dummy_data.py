@@ -16,10 +16,10 @@ def create_dummy_data(new_session):
     new_session.commit()
 
     patient_infos = [
-        PatientInfo(patient_id=patients[0].patient_id, type="Allergy", info="Peanuts"),
-        PatientInfo(patient_id=patients[0].patient_id, type="Medication", info="Aspirin"),
-        PatientInfo(patient_id=patients[1].patient_id, type="Diagnosis", info="Diabetes"),
-        PatientInfo(patient_id=patients[2].patient_id, type="Surgery", info="Appendectomy in 2015"),
+        PatientInfo(patient_id=patients[0].patient_id, type="Allergy", content="Peanuts", priority=0),
+        PatientInfo(patient_id=patients[0].patient_id, type="Medication", content="Aspirin", priority=0),
+        PatientInfo(patient_id=patients[1].patient_id, type="Diagnosis", content="Diabetes", date=date(1990, 5, 1), priority=0),
+        PatientInfo(patient_id=patients[2].patient_id, type="Surgery", content="Appendectomy in 2015", priority=0),
     ]
     new_session.add_all(patient_infos)
     new_session.commit()

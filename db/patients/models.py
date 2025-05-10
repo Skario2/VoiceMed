@@ -16,4 +16,6 @@ class PatientInfo(Base):
     info_id = Column(Integer, primary_key=True)
     patient_id = Column(Integer, ForeignKey('patient.patient_id'))
     type = Column(String(100), nullable=False)
-    info = Column(String(1000), nullable=False)
+    content = Column(String(1000), nullable=False)
+    date = Column(Date)
+    priority = Column(Integer)
