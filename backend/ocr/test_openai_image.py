@@ -3,7 +3,7 @@ import os
 
 if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    image_path = os.path.join(script_dir, "../../resources/lab3.jpg")
+    image_path = os.path.join(script_dir, "../../resources/lab1.jpg")
     image_path = os.path.normpath(image_path)  # Normalize the path
 
     server = OpenAIServer.new_server()

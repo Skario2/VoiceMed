@@ -6,13 +6,21 @@ import base64
 class OpenAIServer:
     API_KEY_PATH = ".venv/CHATGPT_API"
     SYSTEM_PROMPT = (
-        "You are a medical data extraction assistant. Your task is to extract structured data from medical documents including images, PDFs, and unstructured notes. "
-        "The output should be in JSON format. Extract patient identifiers, medications (name, dosage, frequency, start/end dates), appointments (date, doctor, department, status), "
-        "and lab reports (test name, result, date, unit). Ensure all dates are in YYYY-MM-DD format and map ambiguous terms using standard medical terminology."
+        "You are a medical data extraction assistant. Your task is to extract structured structured data from a wide variety of medical documents, including but not limited to images, PDFs, vaccination passes, lab reports, doctor reports, and handwritten notes. "
+        "For each document, output a dictionary with the following structure: "
+        "{type: medicine/lab report/vaccination pass/doctor report, "
+        "priority: doctor report has the highest priority (for now), "
+        "content: "
+        "if type is medicine, include name and description; "
+        "if type is lab report, include only abnormal values (too high/too low based on context); "
+        "if type is vaccination pass, include the number of vaccinations; "
+        "if type is doctor report, include the name of the doctor; "
+        "date: the date of the document or event.} "
+        "If all required content elements are present for a document, add a field 'information_quality' with value 'good'. "
+        "Ensure all dates are in YYYY-MM-DD format. Use standard medical terminology and infer context where possible."
     )
     USER_PROMPT = (
-        "Please extract the medication history, upcoming and past appointments, and lab test results from this patient file. "
-        "The file may include scanned images and PDFs."
+        "Please extract structured information from this patient file. The file may include scanned images, PDFs, vaccination passes, lab reports, doctor reports, and handwritten notes."
     )
 
     def __init__(self, key):
@@ -28,7 +36,9 @@ class OpenAIServer:
             key = file.readline().strip()
         return cls(key)
 
-    def extract_from_image(self, image_bytes: bytes) -> dict:
+    def extract_from_image(self, image_path: str) -> dict:
+        with open(image_path, "rb") as f:
+            image_bytes = f.read()
         base64_image = base64.b64encode(image_bytes).decode("utf-8")
         self.messages.append({
             "role": "user",
