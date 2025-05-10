@@ -49,7 +49,7 @@ def start():
 @app.route("/api/info", methods=["PUT"])
 def save_info():
     json_data = request.get_json(force=True)
-    database_format = {"type": json_data["type"], "proirity": json_data["proirity"],
+    database_format = {"type": json_data["type"], "priority": json_data["priority"],
                        "content": json_data["content"], "date": json_data["date"]}
     try:
         save_to_db(**database_format)

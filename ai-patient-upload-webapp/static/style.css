@@ -16,6 +16,7 @@ body {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     width: 90%;
     max-width: 500px;
+    text-align: center;
   }
   
   h2 {
@@ -26,15 +27,20 @@ body {
   form {
     display: flex;
     flex-direction: column;
+    gap: 20px;
   }
   
-  input[type="text"],
-  input[type="file"] {
-    padding: 12px;
-    margin-bottom: 20px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 16px;
+  .drop-zone {
+    border: 2px dashed #007BFF;
+    padding: 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    background-color: #f9f9f9;
+    transition: background-color 0.3s;
+  }
+  
+  .drop-zone.dragover {
+    background-color: #e6f7ff;
   }
   
   button {
