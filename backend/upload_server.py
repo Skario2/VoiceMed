@@ -2,6 +2,7 @@ import base64
 import hashlib
 import hmac
 import os
+import random
 import secrets
 from datetime import datetime
 import threading
@@ -41,7 +42,19 @@ def save_to_db(patient_id: int, type: str, priority: int, content: str, date: da
     session.add(PatientInfo(patient_id=patient_id, type=type, content=content, date=date, priority=priority))
     session.commit()
 
-@app.route("/api/start", methods=["GET"])
+@app.route("/api/upload-stats", methods=["GET"])
+def check():
+    patient_id = request.args.get("patient_id")
+    lock.acquire()
+    if patient_id not in connected_patients:
+        lock.release()
+        return jsonify({"status": "bad"}), 400
+    connected_patients[patient_id]["lock"].acquire()
+    status = connected_patients[patient_id]["last_uploaded"]["status"]
+    lock.release()
+    return jsonify({"status": status}), 200
+
+@app.route("/api/start-upload", methods=["GET"])
 def start():
     start_id = request.args.get("id")
     return jsonify({"url": "http://localhost:8080/?id=" + start_id})
@@ -60,6 +73,14 @@ def save_info():
 @app.route("/api/upload", methods=["POST"])
 def upload_file():
     file = request.files["file"]
+    patient_id = request.args.get("patient_id")
+    lock.acquire()
+    if patient_id not in connected_patients:
+        lock.release()
+        return jsonify({"status": "bad"}), 400
+    connected_patients[patient_id]["lock"].acquire()
+    lock.release()
+
     if file.filename == "":
         return jsonify({"error": "Empty filename"}), 400
     if file:
@@ -67,16 +88,15 @@ def upload_file():
             image_bytes = file.read()
             openai_server = OpenAIServer.new_server()
             output = openai_server.extract_from_image(image_bytes)
-            if output['status'] == 'good':
-                # todo: inform agent that it's good
-                return jsonify({"status": "good"}), 200
-            if output['status'] == 'bad':
-                # todo: inform agent that it's bad
-                return jsonify({"status": "bad"}), 400
-            if output['status'] == 'unclear':
-                # todo: inform agent that it's bad
-                return jsonify({"status": "unclear"}), 200
+            connected_patients[patient_id]["last_uploaded"] = {
+                "id": 0 if len(connected_patients[patient_id]["last_uploaded"]) == 0 else connected_patients[patient_id]["last_uploaded"]["id"] + 1 ,
+                "status": output["status"],
+                "content": output["content"]
+            }
+            connected_patients[patient_id]["lock"].release()
+            return jsonify({"status": "ok"}), 200
         except Exception as e:
+            connected_patients[patient_id]["lock"].release()
             return jsonify({"error": str(e)}), 500
     return jsonify({"error": "Invalid file type"}), 400
 
@@ -93,10 +113,14 @@ def get_id():
      .filter(Patient.insurance_card_id == insurance_id).all())
     assert len(patients) <= 1
     is_new = len(patients) == 0
+
     hash_digest = hmac.new(__SECRET_KEY__, f"{__c:03}".encode(), hashlib.sha256).digest()
     patient_id = base64.urlsafe_b64encode(hash_digest).decode().rstrip("=")
     lock.acquire()
-    connected_patients[patient_id] = {"patient": patients[0].patient_id, "state": "authenticated", "last_uploaded_id": -1}
+    connected_patients[patient_id] = {"patient": patients[0].patient_id,
+                                      "state": "authenticated",
+                                      "last_uploaded": {},
+                                      "lock": threading.Lock()}
     lock.release()
     return {'id': patient_id, 'is_new': is_new}, 200
 
