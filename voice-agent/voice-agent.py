@@ -22,7 +22,6 @@ SYSTEM_MESSAGE = (
     "You are a helpful AI assistant whose purpose it is to find out about the medical history of the caller"
     "You do this by asking them questions and listening to their responses. "
     "The first information you need to know is the name of the caller, his age and gender, followed by his health insurance provider (public or private), then the name of it. "
-    "Check if the user is a new or returning patient. "
     "Check the information of the user against publicly available information and kindly ask to confirm if you doubt the information. "
     "You always stay positive and polite, and you are very good at asking follow-up questions. "
     "Talk to the caller as if you are a human. "
@@ -39,6 +38,7 @@ SYSTEM_MESSAGE = (
     "The second step is to get necessary information about the patient's medical history, including if they take any medicines, if they have any allergies, have done any operations, or any symptoms they have in the moment of the voice chat. If anything is unclear or does not look very trustworthy you can double check if you misheard the actual information"
     "Once the second step is done, you can double check that all the gathered information is correct and then use the tool \"put_info_from_voice\" to store information about medical history in the database."
     "The last step is to upload files. This is not part of your chat, but you still assist the patient while their upload. You get notified by a user text prompt whenever something happens with the uploading stuff so you can interact and help the patient. "
+    "Those files describe the medical history of the patient. Ask him for to upload relevant ones. If the patient does not know what to upload, ask him to upload the files he has. Based on his age and the information you already have you can guess what or reports are relevant. "
 )
 VOICE = 'alloy'
 LOG_EVENT_TYPES = [
@@ -65,9 +65,9 @@ async def handle_incoming_call(request: Request):
     """Handle incoming call and return TwiML response to connect to Media Stream."""
     response = VoiceResponse()
     # <Say> punctuation to improve text-to-speech flow
-    response.say("Please wait")
+    #response.say("Please wait")
     response.pause(length=1)
-    response.say("Hello!")
+    #response.say("Hello!")
     host = request.url.hostname
     connect = Connect()
     connect.stream(url=f'wss://{host}/media-stream')
@@ -138,26 +138,32 @@ async def handle_media_stream(websocket: WebSocket):
                     if 'response' in response.keys() and 'output' in response['response'].keys():
                         try:
                             tools = [tool for tool in response['response']['output'] if tool['type'] == 'function_call']
-                            tool = tools[0]
-                            method_name = tool['name']
-                            arguments = json.loads(tool['arguments'])
-                            if method_name == "get_id_from_server":
-                                patient_id, is_new = get_id_from_server(**arguments)
-                                content = "This is a new user that was not stored in avi's database." if is_new else "This is a user that was already stored in avi's database."
-                                await openai_ws.send(json.dumps({
-                                    "messages": [
-                                        {
+                            if len(tools) > 0:
+                                tool = tools[0]
+                                method_name = tool['name']
+                                arguments = json.loads(tool['arguments'])
+                                if method_name == "get_id_from_server":
+                                    patient_id, is_new = get_id_from_server(**arguments)
+                                    content = "This is a new user that was not stored in avi's database." if is_new else "This is a user that was already stored in avi's database."
+                                    await openai_ws.send(json.dumps({
+                                        "type": "conversation.item.create",
+                                        "item": {
+                                            "type": "message",
                                             "role": "user",
-                                            "content": content
+                                            "content": [
+                                                {
+                                                    "type": "input_text",
+                                                    "text": content
+                                                }
+                                            ],
                                         }
-                                    ]
-                                }))
-                            elif method_name == "put_info_from_voice":
-                                put_info_from_voice(**arguments)
-                            elif method_name == "start_upload":
-                                start_upload(**arguments)
-                            elif method_name == "check_upload":
-                                check_upload(patient_id)
+                                    }))
+                                elif method_name == "put_info_from_voice":
+                                    put_info_from_voice(**arguments)
+                                elif method_name == "start_upload":
+                                    start_upload(**arguments)
+                                elif method_name == "check_upload":
+                                    check_upload(patient_id)
                         except Exception as e:
                             print(str(e))
 
@@ -246,7 +252,7 @@ async def send_initial_conversation_item(openai_ws):
             "content": [
                 {
                     "type": "input_text",
-                    "text": "Greet the user with 'Hello there! I am Joe, an AI assistant whose purpose it is to make your medical intake at Avi medical as easy as possible. What is your name?'"
+                    "text": "Greet the user with 'Hi! I am Joe, an AI assistant working to make your appointment at Avi medical as convenient as possible'"
                 }
             ],
 
@@ -319,21 +325,20 @@ def _get_id(
 
 
 def _create_intake(
-        dob: str,
-        gender: str,
         health_insurance_type: str,
         health_insurance_name: str,
-        name: str,
+        gender: str,
         phone_number: str,
         email: str,
         address: str,
         postal_code: str,
         city: str,
         country: str,
+        allergies: str,
+        medication: str,
 ):
     """
     Create an intake object for the given parameters.
-    :param dob: The patients date of birth
     :param gender: The patients gender
     :param health_insurance_type: The patients health insurance provider type (public or private)
     :param health_insurance_name: The patients health insurance provider name
@@ -344,29 +349,23 @@ def _create_intake(
     :param postal_code: The patients postal code
     :param city: The patients city
     :param country: The patients country
+    :param allergies: The patients allergies
+    :param medication: The patients current medication
     :return: an intake object.
     """
 
 
-def _create_anamnese(
-        dob: str,
-        name: str,
+def _create_symptoms(
         symptoms: str = "",
+        related: str = "",
 ):
     """
-    Create an anamnese object for the given parameters.
-    :param dob: The patients date of birth
-    :param name: The patients name
-    :param symptoms: The symptom items of the anamnese object. A patient can have multiple
-                symptoms. Each symptom has is described by
-                * title
-                * related. The explanation contains further
-                details about the item, what the patiens condition is related to, like prior sicknesses,
-                allergies, etc. Example: "I have a headache in the front of my head. I am allergic to pollen." After asking some follow-ups, the patient says "I used painkillers (determine type) before. Here the following could be inferred
-                title: "Headache"
-                related: "Location in front of head. Patient is allergic to pollen. Painkiller used: ibuprofen"
-            :type symptoms: [{"title": "str", "related": "str"}]
-    :return: a protocol object.
+    Create a symptoms object for the given parameters. Ask the patient to elaborate on the symptoms, what caused them, where they are and how his medical history could be related to them.
+    The patient might have multiple symptoms. 
+    :param symptoms: The symptoms
+    :param related: The explanation contains further details about the item, what the patiens condition is related to, like prior sicknesses,
+                allergies, etc. 
+    :return: a symptoms object.
     """
 
 
