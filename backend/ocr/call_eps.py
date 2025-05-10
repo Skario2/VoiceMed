@@ -20,9 +20,20 @@ def get_id_from_server(name : str, birthday: str, insurance_id: str) -> tuple[in
 
 def put_info_from_voice(data_structure) -> None:
     """
-
-    :param data_structure:
-    :return:
+create a data structure for the patient information based on the patient's voice input.
+    :param data_structure: the data structure to be sent to the server.
+    data_structure is a dictionary with the following keys:
+        - type: the type of the information (medicine/ allergy/ diagnosis/ operations/ chronic disease/ vaccination)
+        - priority: the priority of how critical is the information type (0-10)
+        - content: the content of the infrormation (the description of what content to be stored)
+        - date: the date of the information
+    :type data_structure: {
+        "type": "str", 
+        "priority": "int",
+        "content": "str",
+        "date": "str"
+        }
+    :return: None
     """
     response = requests.put(f"{SERVER_URL}/api/info", json=data_structure)
     return response.json() if response.status_code == 200 else None
