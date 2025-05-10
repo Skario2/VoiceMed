@@ -12,7 +12,7 @@ from twilio.twiml.voice_response import VoiceResponse, Connect
 from backend.ocr.call_eps import *
 
 # Configuration
-API_KEY_PATH = ".venv/CHATGPT_API"
+API_KEY_PATH = "../.venv/CHATGPT_API"
 with open(API_KEY_PATH, "r") as file:
     OPENAI_API_KEY = file.readline().strip()
 PORT = int(os.getenv('PORT', 5050))
@@ -131,17 +131,17 @@ async def handle_media_stream(websocket: WebSocket):
                     if response['type'] in LOG_EVENT_TYPES:
                         print(f"Received event: {response['type']}", response)
 
-                    if response['tool_choice'] is not None:
+                    if 'tool_choice' in response:
                         method_name = response['tool_choice']['name']
                         arguments = json.loads(response['tool_choice']['arguments'])
-                        if method_name == "get_id_from_server" :
+                        if method_name == "get_id_from_server":
                             patient_id = get_id_from_server(**arguments)
                             assert patient_id is not None
-                        elif method_name == "put_info_from_voice" :
+                        elif method_name == "put_info_from_voice":
                             put_info_from_voice(**arguments)
-                        elif method_name == "start_upload" :
+                        elif method_name == "start_upload":
                             start_upload(**arguments)
-                        elif method_name == "check_upload" :
+                        elif method_name == "check_upload":
                             check_upload(patient_id)
 
                     if response.get('type') == 'response.audio.delta' and 'delta' in response:
@@ -252,15 +252,15 @@ async def initialize_session(openai_ws):
             "modalities": ["text", "audio"],
             "temperature": 0.8,
             "tools": [
-                {'type': 'function', 'function': {'name': 'get_id_from_server',
-                                                  'description': 'Get the id of the patient for the given parameters.\nThe function returns: the id of the patient.',
-                                                  'parameters': {'type': 'object', 'properties': {
-                                                      'name': {'type': 'string', 'description': 'The patients name'},
-                                                      'birthday': {'type': 'string',
-                                                                   'description': 'The patients date of birth in format YYYY-MM-DD',},
-                                                      'insurance_id': {'type': 'string',
-                                                                       'description': 'The patients health insurance number'}},
-                                                                 'required': ['name', 'birthday', 'insurance_id']}}}
+                {'type': 'function', 'name': 'get_id_from_server',
+                 'description': 'Get the id of the patient for the given parameters.\nThe function returns: the id of the patient.',
+                 'parameters': {'type': 'object', 'properties': {
+                     'name': {'type': 'string', 'description': 'The patients name'},
+                     'birthday': {'type': 'string',
+                                  'description': 'The patients date of birth in format YYYY-MM-DD', },
+                     'insurance_id': {'type': 'string',
+                                      'description': 'The patients health insurance number'}},
+                                'required': ['name', 'birthday', 'insurance_id']}}
             ]
         }
     }
@@ -354,4 +354,5 @@ def _create_anamnese(
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=PORT)
