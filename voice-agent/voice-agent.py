@@ -33,8 +33,12 @@ SYSTEM_MESSAGE = (
     # specific questions
     "If the user gives you a long answer, that you do not understand or that contradicts earlier statements, ask the user to summarize again. "
     "If the user insists he does not have a medical history, rephrase the way you ask and explain that it is very important, that the doctor knows. "
-    "The chat is generally seperated into three main steps. Start by asking about the personal information needed for the authentication of the patient, which are the full name, birth date and insurance number. If you doubt any information then ask them again. Once you have them three you can use the function tool named \"get_id_from_server\"" 
-    # todo: Add the next steps
+    # "You are a helpful and bubbly AI assistant who loves to chat about "
+    "The chat is generally seperated into three main steps. Start by asking about the personal information needed for the authentication of the patient, which are the full name, birth date and insurance number. If you doubt any information then ask them again. Once you have them three you can use the function tool named \"get_id_from_server\""
+    "Once the first step is done, you will get a text prompt telling if the actual patient is a new one or an old one so you can double check it with them."
+    "The second step is to get necessary information about the patient's medical history, including if they take any medicines, if they have any allergies, have done any operations, or any symptoms they have in the moment of the voice chat. If anything is unclear or does not look very trustworthy you can double check if you misheard the actual information"
+    "Once the second step is done, you can double check that all the gathered information is correct and then use the tool \"put_info_from_voice\". "
+    "The last step is to upload files. This is not part of your chat, but you still assist the patient while their upload. You get notified by a user text prompt whenever something happens with the uploading stuff so you can interact and help the patient. "
 )
 VOICE = 'alloy'
 LOG_EVENT_TYPES = [
@@ -69,6 +73,7 @@ async def handle_incoming_call(request: Request):
     connect.stream(url=f'wss://{host}/media-stream')
     response.append(connect)
     return HTMLResponse(content=str(response), media_type="application/xml")
+
 
 @app.websocket("/media-stream")
 async def handle_media_stream(websocket: WebSocket):
@@ -130,15 +135,23 @@ async def handle_media_stream(websocket: WebSocket):
                     if response['type'] in LOG_EVENT_TYPES:
                         print(f"Received event: {response['type']}", response)
 
-                    if 'response' in response.keys() and 'output' in response['response'].keys() :
+                    if 'response' in response.keys() and 'output' in response['response'].keys():
                         try:
                             tools = [tool for tool in response['response']['output'] if tool['type'] == 'function_call']
                             tool = tools[0]
                             method_name = tool['name']
                             arguments = json.loads(tool['arguments'])
                             if method_name == "get_id_from_server":
-                                patient_id = get_id_from_server(**arguments)
-                                assert patient_id is not None
+                                patient_id, is_new = get_id_from_server(**arguments)
+                                content = "This is a new user that was not stored in avi's database." if is_new else "This is a user that was already stored in avi's database."
+                                await openai_ws.send(json.dumps({
+                                    "messages": [
+                                        {
+                                            "role": "user",
+                                            "content": content
+                                        }
+                                    ]
+                                }))
                             elif method_name == "put_info_from_voice":
                                 put_info_from_voice(**arguments)
                             elif method_name == "start_upload":
