@@ -71,7 +71,6 @@ async def handle_incoming_call(request: Request):
     response.append(connect)
     return HTMLResponse(content=str(response), media_type="application/xml")
 
-
 @app.websocket("/media-stream")
 async def handle_media_stream(websocket: WebSocket):
     """Handle WebSocket connections between Twilio and OpenAI."""
@@ -83,7 +82,8 @@ async def handle_media_stream(websocket: WebSocket):
             extra_headers={
                 "Authorization": f"Bearer {OPENAI_API_KEY}",
                 "OpenAI-Beta": "realtime=v1"
-            }
+            },
+
     ) as openai_ws:
         await initialize_session(openai_ws)
 
@@ -131,18 +131,23 @@ async def handle_media_stream(websocket: WebSocket):
                     if response['type'] in LOG_EVENT_TYPES:
                         print(f"Received event: {response['type']}", response)
 
-                    if 'tool_choice' in response:
-                        method_name = response['tool_choice']['name']
-                        arguments = json.loads(response['tool_choice']['arguments'])
-                        if method_name == "get_id_from_server":
-                            patient_id = get_id_from_server(**arguments)
-                            assert patient_id is not None
-                        elif method_name == "put_info_from_voice":
-                            put_info_from_voice(**arguments)
-                        elif method_name == "start_upload":
-                            start_upload(**arguments)
-                        elif method_name == "check_upload":
-                            check_upload(patient_id)
+                    if 'response' in response.keys() and 'output' in response['response'].keys() :
+                        try:
+                            tools = [tool for tool in response['response']['output'] if tool['type'] == 'function_call']
+                            tool = tools[0]
+                            method_name = tool['name']
+                            arguments = json.loads(tool['arguments'])
+                            if method_name == "get_id_from_server":
+                                patient_id = get_id_from_server(**arguments)
+                                assert patient_id is not None
+                            elif method_name == "put_info_from_voice":
+                                put_info_from_voice(**arguments)
+                            elif method_name == "start_upload":
+                                start_upload(**arguments)
+                            elif method_name == "check_upload":
+                                check_upload(patient_id)
+                        except Exception as e:
+                            print(str(e))
 
                     if response.get('type') == 'response.audio.delta' and 'delta' in response:
                         audio_payload = base64.b64encode(base64.b64decode(response['delta'])).decode('utf-8')
@@ -231,7 +236,8 @@ async def send_initial_conversation_item(openai_ws):
                     "type": "input_text",
                     "text": "Greet the user with 'Hello there! I am Joe, an AI assistant whose purpose it is to make your medical intake at Avi medical as easy as possible. What is your name?'"
                 }
-            ]
+            ],
+
         }
     }
     send_sms("https://www.avimedical.com/en")

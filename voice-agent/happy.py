@@ -1,0 +1,15 @@
+{'type': 'response.done', 'event_id': 'event_BVkbeX7yMoOsiwkJcP75e',
+ 'response': {'object': 'realtime.response', 'id': 'resp_BVkbanEeamrQ0jP7pI2AO', 'status': 'completed',
+              'status_details': None, 'output': [
+         {'id': 'item_BVkbaTiGyO2bAuoiUHsIH', 'object': 'realtime.item', 'type': 'message', 'status': 'completed',
+          'role': 'assistant', 'content': [{'type': 'audio',
+                                            'transcript': "Thank you, Niklas. I'll now use the information you've provided to proceed. Please give me a moment."}]},
+         {'id': 'item_BVkbdNmrKlU3d2j01f5d3', 'object': 'realtime.item', 'type': 'function_call', 'status': 'completed',
+          'name': 'get_id_from_server', 'call_id': 'call_4HO6qny4evdT0FA3',
+          'arguments': '{"name":"Niklas","birthday":"2005-01-25","insurance_id":"426789"}'}],
+              'conversation_id': 'conv_BVkb2W0Kb3wWmFzEKM6Cp', 'modalities': ['text', 'audio'], 'voice': 'alloy',
+              'output_audio_format': 'g711_ulaw', 'temperature': 0.8, 'max_output_tokens': 'inf',
+              'usage': {'total_tokens': 1222, 'input_tokens': 1025, 'output_tokens': 197,
+                        'input_token_details': {'text_tokens': 588, 'audio_tokens': 437, 'cached_tokens': 832,
+                                                'cached_tokens_details': {'text_tokens': 512, 'audio_tokens': 320}},
+                        'output_token_details': {'text_tokens': 67, 'audio_tokens': 130}}, 'metadata': None}}

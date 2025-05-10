@@ -19,6 +19,7 @@ def get_id_from_server(name : str, birthday: str, insurance_id: str) -> int | No
     return response.json()["id"] if response.status_code == 200 else None
 
 def put_info_from_voice(data_structure) -> None:
+
     response = requests.put(f"{SERVER_URL}/api/info", json=data_structure)
     return response.json() if response.status_code == 200 else None
 
