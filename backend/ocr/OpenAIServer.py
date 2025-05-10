@@ -1,8 +1,6 @@
 from openai import OpenAI
 import base64
 
-
-
 # another class open ai server
 # prompt model with give parameters
 class OpenAIServer:
@@ -30,12 +28,8 @@ class OpenAIServer:
             key = file.readline().strip()
         return cls(key)
 
-    def extract_from_image(self, image_path: str) -> dict:
-        import base64
-        with open(image_path, "rb") as f:
-            image_bytes = f.read()
+    def extract_from_image(self, image_bytes: bytes) -> dict:
         base64_image = base64.b64encode(image_bytes).decode("utf-8")
-
         self.messages.append({
             "role": "user",
             "content": [
