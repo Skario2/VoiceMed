@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  patients_db:
+    image: postgres:latest
+    container_name: patients_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: patients
+    ports:
+      - "5432:5432"
+    volumes:
+      - patients:/var/lib/postgresql/data  # Persistent storage for database data
+
+volumes:
+  patients:
