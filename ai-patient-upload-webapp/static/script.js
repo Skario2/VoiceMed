@@ -6,7 +6,7 @@ form.addEventListener('submit', async (e) => {
   const formData = new FormData(form);
 
   try {
-    const response = await fetch('https://your-backend-server.com/upload', {
+    const response = await fetch('https://localhost:8080/api/upload', {
       method: 'POST',
       body: formData,
     });
