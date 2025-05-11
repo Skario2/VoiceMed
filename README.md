@@ -82,6 +82,7 @@ On the technical side:
 - 📄 Documents are processed using OCR + GPT.
 - 🗃️ Extracted data is stored in the PostgreSQL database.
 - 📊 Doctors and staff receive structured insights with reduced manual input.
+- You can call the following number for the AI assistant +3197010274423
 
 ---
 
