@@ -34,7 +34,9 @@ connected_patients = {}
 lock = threading.Lock()
 
 
-def save_to_db(patient_id: int, type: str, priority: int, content: str, date: datetime) -> None:
+def save_to_db(patient_id: int, type: str, priority: int, content: str, date: datetime | str) -> None:
+    if isinstance(date, str):
+        date = datetime.strptime(date, '%Y-%m-%d').date()
     engine = create_engine(DATABASE_URL, echo=True)
     Base.metadata.create_all(engine)
     new_session = sessionmaker(bind=engine)
@@ -45,11 +47,10 @@ def save_to_db(patient_id: int, type: str, priority: int, content: str, date: da
 
 @app.route("/api/info", methods=["PUT"])
 def save_info():
-    json_data = request.get_json(force=True)
-    database_format = {"type": json_data["type"], "priority": json_data["priority"],
-                       "content": json_data["content"], "date": json_data["date"]}
+    database_format = request.get_json(force=True)
     try:
-        save_to_db(**database_format)
+        for db_format in database_format:
+            save_to_db(**db_format)
         return jsonify({"message": "Saved data in the database"}), 200
     except Exception:
         return jsonify({"error": "Cannot save the data in the database"}), 400
@@ -92,7 +93,6 @@ def get_id():
     name = request.args.get("name")
     birthdate = request.args.get("birthday")
     insurance_id = request.args.get("insurance_id")
-    print(request.args)
     engine = create_engine(DATABASE_URL, echo=True)
     Base.metadata.create_all(engine)
     new_session = sessionmaker(bind=engine)
@@ -128,14 +128,25 @@ def put_info():
 
     if patient_id not in connected_patients:
         return jsonify({"error": "Unknown patient_id"}), 404
-
+    engine = create_engine(DATABASE_URL, echo=True)
+    Base.metadata.create_all(engine)
+    new_session = sessionmaker(bind=engine)
     data_structure = request.get_json(force=True)
     lock.acquire()
     try:
-        connected_patients[patient_id]["last_uploaded"]["structured_data"] = data_structure
+        connected_patients[patient_id]["lock"].acquire()
         connected_patients[patient_id]["state"] = "voice_done"
+    except Exception:
+        connected_patients[patient_id]["lock"].release()
+        return jsonify({"error": "Cannot save the data in the database"}), 400
     finally:
         lock.release()
+    patient_id = connected_patients[patient_id]["patient"]
+    connected_patients[patient_id]["lock"].release()
+    for info in data_structure:
+        with new_session() as session:
+            session.add(PatientInfo(patient_id=patient_id, **info))
+            session.commit()
     return jsonify({"status": "ok"}), 200
 
 @app.route("/api/start-upload", methods=["PUT"])

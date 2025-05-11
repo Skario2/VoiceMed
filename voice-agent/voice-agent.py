@@ -36,7 +36,7 @@ SYSTEM_MESSAGE = (
     "The chat is generally seperated into three main steps. Start by asking about the personal information needed for the authentication of the patient, which are the full name, birth date and insurance number. If you doubt any information then ask them again. Once you have them three you can use the function tool named \"get_id_from_server\""
     "Once the first step is done, you will get a text prompt telling if the actual patient is a new one or an old one so you can double check it with them."
     "The second step is to get necessary information about the patient's medical history, including if they take any medicines, if they have any allergies, have done any operations, or any symptoms they have in the moment of the voice chat. If anything is unclear or does not look very trustworthy you can double check if you misheard the actual information"
-    "Once the second step is done, you can double check that all the gathered information is correct and then use the tool \"put_info_from_voice\" to store information about medical history in the database."
+    "Once the second step is done, you can only double check that the gathered information is correct and then use the tool \"put_info_from_voice\" to store information about medical history in the database."
     "The last step is to upload files. This is not part of your chat, but you still assist the patient while their upload. You get notified by a user text prompt whenever something happens with the uploading stuff so you can interact and help the patient. "
     "Those files describe the medical history of the patient. Ask him for to upload relevant ones. If the patient does not know what to upload, ask him to upload the files he has. Based on his age and the information you already have you can guess what or reports are relevant. "
 )
@@ -65,9 +65,9 @@ async def handle_incoming_call(request: Request):
     """Handle incoming call and return TwiML response to connect to Media Stream."""
     response = VoiceResponse()
     # <Say> punctuation to improve text-to-speech flow
-    #response.say("Please wait")
+    # response.say("Please wait")
     response.pause(length=1)
-    #response.say("Hello!")
+    # response.say("Hello!")
     host = request.url.hostname
     connect = Connect()
     connect.stream(url=f'wss://{host}/media-stream')
@@ -162,8 +162,7 @@ async def handle_media_stream(websocket: WebSocket):
                                     content = "This is a new user that was not stored in avi's database." if is_new else "This is a user that was already stored in avi's database."
                                     await send_info_to_openai(content)
                                 elif method_name == "put_info_from_voice":
-                                    put_info_from_voice(**arguments)
-
+                                    put_info_from_voice(patient_id, **arguments)
                                 elif method_name == "start_upload":
                                     start_upload(**arguments)
                                 elif method_name == "check_upload":
@@ -288,7 +287,22 @@ async def initialize_session(openai_ws):
                                   'description': 'The patients date of birth in format YYYY-MM-DD', },
                      'insurance_id': {'type': 'string',
                                       'description': 'The patients health insurance number'}},
-                                'required': ['name', 'birthday', 'insurance_id']}}
+                                'required': ['name', 'birthday', 'insurance_id']}},
+                {'type': 'function', 'name': 'put_info_from_voice',
+                 'description': "this function creates a data structure for the patient information based on the patient's voice input and stores it on the database.\nThe function returns: None",
+                 'parameters': {'type': 'object', 'properties': {'data_structure': {'type': 'array',
+                                                                                    'items': {'type': 'object',
+                                                                                              'properties': {'type': {
+                                                                                                  'type': 'string'},
+                                                                                                             'priority': {
+                                                                                                                 'type': 'integer'},
+                                                                                                             'content': {
+                                                                                                                 'type': 'string'},
+                                                                                                             'date': {
+                                                                                                                 'type': 'string'}}},
+                                                                                    'description': 'the data structure to be sent to the server.\ndata_structure is a string in JSON format for an object with the following keys:\n- type: the type of the information (medicine/ allergy/ diagnosis/ operations/ chronic disease/ vaccination)\n- priority: the priority of how critical is the information type (0-10)\n- content: the content of the infrormation (the description of what content to be stored)\n- date: the date of the information'}},
+                                'required': ['data_structure']}}
+
             ]
         }
     }
