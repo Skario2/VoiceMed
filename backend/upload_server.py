@@ -120,10 +120,10 @@ def get_id():
     return {'id': patient_id, 'is_new': is_new}, 200
 
 
-@app.route("/api/info", methods=["PUT"])
+@app.route("/api/info", methods=["POST", "PUT"])
 def put_info():
     patient_id = request.args.get("patient_id")
-    if not patient_id:
+    if patient_id is None:
         return jsonify({"error": "Missing patient_id"}), 400
 
     if patient_id not in connected_patients:
@@ -141,11 +141,13 @@ def put_info():
         return jsonify({"error": "Cannot save the data in the database"}), 400
     finally:
         lock.release()
-    patient_id = connected_patients[patient_id]["patient"]
+    patient_actual_id = connected_patients[patient_id]["patient"]
     connected_patients[patient_id]["lock"].release()
     for info in data_structure:
         with new_session() as session:
-            session.add(PatientInfo(patient_id=patient_id, **info))
+            print(3)
+            session.add(PatientInfo(patient_id=patient_actual_id, **info))
+            print(4)
             session.commit()
     return jsonify({"status": "ok"}), 200
 
@@ -171,11 +173,31 @@ def upload_stats():
     if not patient_id:
         return jsonify({"error": "Missing patient_id"}), 400
 
+    lock.acquire()
     if patient_id not in connected_patients:
+        lock.release()
         return jsonify({"error": "Unknown patient_id"}), 404
 
-    lock.acquire()
     try:
+        status = connected_patients[patient_id]["last_uploaded"]["status"]
+    finally:
+        lock.release()
+    return jsonify({"status": status}), 200
+
+
+@app.route("/api/content", methods=["PUT"])
+def upload_content():
+    patient_id = request.args.get("patient_id")
+    if not patient_id:
+        return jsonify({"error": "Missing patient_id"}), 400
+
+    lock.acquire()
+    if patient_id not in connected_patients:
+        lock.release()
+        return jsonify({"error": "Unknown patient_id"}), 404
+    lock.release()
+    try:
+        connected_patients[patient_id]["last_uploaded"]["structured_data"] = request.get_json(force=True)
         status = connected_patients[patient_id]["last_uploaded"]["status"]
     finally:
         lock.release()
