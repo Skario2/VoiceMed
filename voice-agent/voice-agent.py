@@ -194,14 +194,22 @@ async def handle_media_stream(websocket: WebSocket):
                                 arguments = json.loads(tool['arguments'])
                                 if method_name == "get_id_from_server":
                                     patient_id, is_new = get_id_from_server(**arguments)
-                                    content = "This is a new user that was not stored in avi's database." if is_new else "This is a user that was already stored in avi's database."
+                                    content = "This is a new user that was not stored in avi's database. Notify the user by voice about that." if is_new else "This is a user that was already stored in avi's database. Notify the user by voice about that."
                                     await send_info_to_openai(content)
                                 elif method_name == "put_info_from_voice":
                                     put_info_from_voice(patient_id, **arguments)
                                 elif method_name == "start_upload":
-                                    start_upload(**arguments)
+                                    upload_link = start_upload(**arguments)
+                                    await send_info_to_openai("The link is generated. Notify the user by voice to check their SMS.")
+                                    send_sms(upload_link)
                                 elif method_name == "check_upload":
-                                    check_upload(patient_id)
+                                    file_id, status = check_upload(patient_id)
+                                    if file_id is None or status is None:
+                                        await send_info_to_openai(
+                                            "The upload was not successful. Notify the user by voice that they need to upload again.")
+                                    else:
+                                        await send_info_to_openai(
+                                            f"The upload and OCR has the status \"{status}\". Notify the user by voice accordingly.")
                         except Exception as e:
                             print(str(e))
 
@@ -296,7 +304,6 @@ async def send_initial_conversation_item(openai_ws):
 
         }
     }
-    send_sms("https://www.avimedical.com/en")
     await openai_ws.send(json.dumps(initial_conversation_item))
     await openai_ws.send(json.dumps({"type": "response.create"}))
 
@@ -358,7 +365,7 @@ def send_sms(body_text):
     message = client.messages.create(
         body="Hello! This is Avi medical, please upload your documents here. Thank you! " + body_text,
         from_="+3197010274423",
-        to="+491749816484",
+        to= "+4915257176299", # "+491749816484", #
     )
     return message.body
 
@@ -424,5 +431,4 @@ def _create_symptoms(
 
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(app, host="0.0.0.0", port=PORT)
