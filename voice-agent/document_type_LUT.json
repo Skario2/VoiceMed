@@ -1,0 +1,43 @@
+{
+    "general_consultation": {
+      "required_documents": ["insurance_card", "list_of_current_medications"],
+      "optional_documents": ["previous_consultation_notes"]
+    },
+    "cardiologist": {
+      "required_documents": ["ecg_reports", "cholesterol_test_results", "blood_pressure_log"],
+      "optional_documents": ["previous_diagnoses", "current_medications"]
+    },
+    "dermatologist": {
+      "required_documents": ["photos_of_skin_condition", "list_of_current_medications"],
+      "optional_documents": ["previous_prescriptions", "allergy_test_results"]
+    },
+    "neurologist": {
+      "required_documents": ["mri_or_ct_scans", "neurological_assessments"],
+      "optional_documents": ["headache_diary", "list_of_current_medications"]
+    },
+    "orthopedic": {
+      "required_documents": ["x_ray_or_mri_reports", "previous_surgery_notes"],
+      "optional_documents": ["pain_tracking_logs"]
+    },
+    "gynecologist": {
+      "required_documents": ["ultrasound_reports", "menstrual_cycle_log"],
+      "optional_documents": ["previous_consultation_notes", "blood_test_results"]
+    },
+    "psychiatrist": {
+      "required_documents": ["mental_health_assessments"],
+      "optional_documents": ["list_of_current_medications", "therapy_notes"]
+    },
+    "pediatrician": {
+      "required_documents": ["vaccination_records", "growth_charts"],
+      "optional_documents": ["previous_diagnoses"]
+    },
+    "dentist": {
+      "required_documents": ["x_ray_of_teeth", "dental_history"],
+      "optional_documents": ["insurance_card"]
+    },
+    "follow_up": {
+      "required_documents": ["latest_test_results"],
+      "optional_documents": ["notes_from_previous_appointment"]
+    }
+  }
+  
