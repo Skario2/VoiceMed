@@ -220,5 +220,5 @@ class FunctionTool:
         return self._function
 
 
-f = FunctionTool(put_info_from_voice)
+f = FunctionTool(check_upload)
 print(f.metadata)

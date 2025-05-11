@@ -164,8 +164,9 @@ async def handle_media_stream(websocket: WebSocket):
                                 elif method_name == "put_info_from_voice":
                                     put_info_from_voice(patient_id, **arguments)
                                 elif method_name == "start_upload":
-                                    upload_link = start_upload(**arguments)
-                                    await send_info_to_openai("The link is generated. Notify the user by voice to check their SMS.")
+                                    upload_link = start_upload(patient_id)
+                                    await send_info_to_openai(
+                                        "The link is generated. Notify the user by voice to check their SMS.")
                                     send_sms(upload_link)
                                 elif method_name == "check_upload":
                                     file_id, status = check_upload(patient_id)
@@ -174,7 +175,8 @@ async def handle_media_stream(websocket: WebSocket):
                                             "The upload was not successful. Notify the user by voice that they need to upload again.")
                                     else:
                                         await send_info_to_openai(
-                                            f"The upload and OCR has the status \"{status}\". Notify the user by voice accordingly.")
+                                            f"The upload and OCR has the status \"{status}\". Notify the user by voice accordingly."
+                                            f"If it is a good status, then store the content using the tool put_info_from_voice.")
                         except Exception as e:
                             print(str(e))
 
@@ -301,14 +303,20 @@ async def initialize_session(openai_ws):
                                                                                     'items': {'type': 'object',
                                                                                               'properties': {'type': {
                                                                                                   'type': 'string'},
-                                                                                                             'priority': {
-                                                                                                                 'type': 'integer'},
-                                                                                                             'content': {
-                                                                                                                 'type': 'string'},
-                                                                                                             'date': {
-                                                                                                                 'type': 'string'}}},
+                                                                                                  'priority': {
+                                                                                                      'type': 'integer'},
+                                                                                                  'content': {
+                                                                                                      'type': 'string'},
+                                                                                                  'date': {
+                                                                                                      'type': 'string'}}},
                                                                                     'description': 'the data structure to be sent to the server.\ndata_structure is a string in JSON format for an object with the following keys:\n- type: the type of the information (medicine/ allergy/ diagnosis/ operations/ chronic disease/ vaccination)\n- priority: the priority of how critical is the information type (0-10)\n- content: the content of the infrormation (the description of what content to be stored)\n- date: the date of the information'}},
-                                'required': ['data_structure']}}
+                                'required': ['data_structure']}},
+                {'type': 'function', 'name': 'start_upload',
+                 'description': 'Start the upload process for the patient. This includes sending the upload link per SMS\nThe function returns: link to the upload webapplication',
+                 'parameters': {'type': 'object', 'properties': {}, 'required': []}},
+                {'type': 'function', 'name': 'check_upload',
+                 'description': 'checks the upload status for the given patient id. Check if the status is ok or not.\nThe function returns: f_id: The id of the file\nstatus: The status of the upload which can be "good", "bad" or "unclear"',
+                 'parameters': {'type': 'object', 'properties': {}, 'required': []}}
 
             ]
         }
@@ -330,7 +338,7 @@ def send_sms(body_text):
     message = client.messages.create(
         body="Hello! This is Avi medical, please upload your documents here. Thank you! " + body_text,
         from_="+3197010274423",
-        to= "+4915257176299", # "+491749816484", #
+        to="+4915257176299",  # "+491749816484", #
     )
     return message.body
 
@@ -396,4 +404,5 @@ def _create_symptoms(
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=PORT)

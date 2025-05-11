@@ -2,12 +2,13 @@ import base64
 import hashlib
 import hmac
 import os
-import random
 import secrets
 from datetime import datetime
 import threading
 
 from flask import Flask, jsonify, request
+from flask_cors import CORS, cross_origin
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -17,6 +18,7 @@ from backend.ocr.OpenAIServer import OpenAIServer
 from db.patients.models import Base, PatientInfo, Patient
 
 app = Flask(__name__)
+CORS(app)
 
 rest_dir = os.path.dirname(__file__)
 
@@ -78,9 +80,12 @@ def upload_file():
                 "id": 0 if len(connected_patients[patient_id]["last_uploaded"]) == 0 else
                 connected_patients[patient_id]["last_uploaded"]["id"] + 1,
                 "status": output["status"],
-                "content": output["content"]
+                "content": output["doc"]["content"]
             }
+            actual_patient_id = connected_patients[patient_id]["patient"]
             connected_patients[patient_id]["lock"].release()
+            if output["status"] == 'good':
+                save_to_db(patient_id = actual_patient_id,**output['doc'])
             return jsonify({"status": "ok"}), 200
         except Exception as e:
             connected_patients[patient_id]["lock"].release()

@@ -41,7 +41,7 @@ def put_info_from_voice(patient_id, data_structure) -> None:
 
 def start_upload(p_id: str) -> str | None:
     """
-    Start the upload process for the given patient id.
+    Start the upload process for the patient. This includes sending the upload link per SMS
     :param p_id: The id of the patient
     :type p_id: int
     :return: link to the upload webapplication
@@ -53,11 +53,11 @@ def start_upload(p_id: str) -> str | None:
 
 def check_upload(p_id):
     """
-    check the upload status for the given patient id. Check if the status is ok or not.
+    checks the upload status for the given patient id. Check if the status is ok or not.
     :param p_id: The id of the patient
     :type p_id: int
     :return: f_id: The id of the file
-             status: The status of the upload
+             status: The status of the upload which can be "good", "bad" or "unclear"
     :rtype: tuple
     """    
     params = {"patient_id": p_id}

@@ -2,7 +2,7 @@ const form = document.getElementById('uploadForm');
 const fileInput = document.getElementById('file');
 const dropZone = document.getElementById('dropZone');
 const messageDiv = document.getElementById('message');
-const id = window.location.href.replaceAll("*/frontend/", "")
+const id = window.location.href.substring(window.location.href.indexOf('/frontend/') + 10)
 
 // Click to trigger file dialog
 dropZone.addEventListener('click', () => fileInput.click());
@@ -46,7 +46,7 @@ form.addEventListener('submit', async (e) => {
   formData.append('file', fileInput.files[0]);
 
   try {
-    const response = await fetch('http://localhost:5000/api/upload?id=' + id, {
+    const response = await fetch('http://localhost:5000/api/upload?patient_id=' + id, {
       method: 'POST',
       body: formData,
     });
