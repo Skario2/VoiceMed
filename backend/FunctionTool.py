@@ -2,8 +2,7 @@ import inspect
 import json
 from typing import Union, get_args, get_origin
 
-from backend.ocr.OpenAIServer import OpenAIServer
-
+from backend.ocr.call_eps import *
 class FunctionTool:
     """
     A wrapper of a function and its description for a
@@ -221,5 +220,5 @@ class FunctionTool:
         return self._function
 
 
-f = FunctionTool(OpenAIServer.extract_data_from_image)
+f = FunctionTool(put_info_from_voice)
 print(f.metadata)
