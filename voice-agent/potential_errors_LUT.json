@@ -1,0 +1,90 @@
+{
+    "insurance_providers": [
+      "AOK",
+      "TK",
+      "Barmer",
+      "DAK-Gesundheit",
+      "BKK",
+      "IKK",
+      "HEK",
+      "HKK",
+      "KKH",
+      "SBK",
+      "Debeka",
+      "Allianz",
+      "HanseMerkur",
+      "Signal Iduna"
+    ],
+    "insurance_id_format": {
+      "regex": "^[A-Z]{1}[0-9]{9}$",
+      "description": "German health insurance numbers typically start with a letter followed by 9 digits."
+    },
+    "gender_options": [
+      "male",
+      "female",
+      "diverse"
+    ],
+    "age_range": {
+      "min": 0,
+      "max": 120
+    },
+    "vaccination_types": [
+      "COVID-19",
+      "Influenza",
+      "Tetanus",
+      "Hepatitis B",
+      "Measles",
+      "Mumps",
+      "Rubella",
+      "Polio"
+    ],
+    "chronic_conditions": [
+      "Diabetes",
+      "Hypertension",
+      "Asthma",
+      "COPD",
+      "Coronary artery disease",
+      "Chronic kidney disease",
+      "Cancer"
+    ],
+    "medication_examples": [
+      "Metformin",
+      "Lisinopril",
+      "Amlodipine",
+      "Atorvastatin",
+      "Ibuprofen",
+      "Paracetamol"
+    ],
+    "common_allergies": [
+      "Penicillin",
+      "Aspirin",
+      "Peanuts",
+      "Latex",
+      "Bee stings"
+    ],
+    "address_format": {
+      "country": "Germany",
+      "fields": [
+        "street",
+        "postal_code",
+        "city"
+      ]
+    },
+    "error_checks": {
+      "insurance_id": "Check if the insurance ID matches the expected format and is not already in use.",
+      "age": "Check if the age is within a plausible range.",
+      "gender": "Check if the gender matches one of the allowed options.",
+      "insurance_provider": "Check if the insurance provider is in the known list.",
+      "medication": "Check if the medication is a known drug or ask for clarification.",
+      "chronic_condition": "Check if the chronic condition is in the known list or ask for more details.",
+      "vaccination": "Check if the vaccination is in the known list or ask for more details."
+    },
+    "discussion_prompts": {
+      "insurance_id_invalid": "The insurance number you provided doesn't match the expected format. Could you please check it again?",
+      "insurance_provider_unknown": "I couldn't find your insurance provider in our list. Could you spell it out or provide more details?",
+      "age_out_of_range": "The age you provided seems unusual. Could you confirm your date of birth?",
+      "medication_unknown": "I'm not familiar with this medication. Could you tell me more about it or spell the name?",
+      "chronic_condition_unknown": "Could you provide more details about your chronic condition?",
+      "vaccination_unknown": "Could you specify which vaccination you are referring to?"
+    }
+  }
