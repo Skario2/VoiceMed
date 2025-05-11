@@ -1,0 +1,6 @@
+{
+    "blood_test_report": ["hemoglobin", "WBC_count", "platelets", "cholesterol", "glucose"],
+    "ecg_report": ["heart_rate", "qrs_duration", "rhythm_type"],
+    "prescription": ["medication_name", "dosage", "frequency", "duration"],
+    "imaging_report": ["findings", "impression", "date", "radiologist_notes"]
+  }
