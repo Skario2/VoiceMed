@@ -1,6 +1,36 @@
+# version: '3.8'
+
+# services:
+#   patients_db:
+#     image: postgres:latest
+#     container_name: patients_db
+#     environment:
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#       POSTGRES_DB: patients
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - patients:/var/lib/postgresql/data  # Persistent storage for database data
+
+# volumes:
+#   patients:
+
 version: '3.8'
 
 services:
+  voiceapp:
+    build: .
+    container_name: voiceapp
+    depends_on:
+      - patients_db
+    ports:
+      - "8000:8000"  # Adjust to your backend's port
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+
   patients_db:
     image: postgres:latest
     container_name: patients_db
@@ -11,7 +41,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - patients:/var/lib/postgresql/data  # Persistent storage for database data
+      - patients:/var/lib/postgresql/data
 
 volumes:
   patients:
